@@ -1,0 +1,29 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: get-go
+spec:
+  selector:
+    matchLabels:
+      app: get-go
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: get-go
+    spec:
+      volumes:
+      - name: nfs-pv-storage
+        persistentVolumeClaim:
+          claimName: nfs-pv-claim
+      containers:
+      - name: get-go
+        image: get-go:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 8000
+          name: "flask"
+        volumeMounts:
+        - mountPath: "/mnt/counters"
+          name: nfs-pv-storage

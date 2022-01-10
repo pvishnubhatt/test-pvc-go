@@ -1,0 +1,33 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: Gateway
+metadata:
+  name: get-gateway
+spec:
+  selector:
+    istio: ingressgateway # use istio default controller
+  servers:
+  - port:
+      number: 80
+      name: http
+      protocol: HTTP
+    hosts:
+    - "*"
+---
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: get
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - get-gateway
+  http:
+  - match:
+    - uri:
+        exact: /counter/get/get  
+    route:
+    - destination:
+        host: get-go-service
+        port:
+          number: 8000

@@ -1,0 +1,34 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: header-route
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - main-gateway
+  http:
+  - match: 
+    - uri:
+        prefix: /counter
+      headers:
+        x1-version:
+          exact: v1
+    route:
+    - destination:
+        host: main-go-service
+        subset: v1
+        port:
+          number: 5000
+  - match:
+    - uri:
+        prefix: /counter
+      headers:
+        x1-version:
+          exact: v2
+    route:
+    - destination:
+        host: main-go-service
+        subset: v2
+        port:
+          number: 5000

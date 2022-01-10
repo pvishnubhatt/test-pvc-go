@@ -1,0 +1,29 @@
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: roll-python
+spec:
+  selector:
+    matchLabels:
+      app: roll-python
+  replicas: 1
+  template:
+    metadata:
+      labels:
+        app: roll-python
+    spec:
+      volumes:
+      - name: nfs-pv-storage
+        persistentVolumeClaim:
+          claimName: nfs-pv-claim
+      containers:
+      - name: roll-python
+        image: roll-python:latest
+        imagePullPolicy: Never
+        ports:
+        - containerPort: 5000
+          name: "flask"
+        volumeMounts:
+        - mountPath: "/mnt/counters"
+          name: nfs-pv-storage

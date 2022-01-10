@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: nfs-dataaccess
+spec:
+  containers:
+    - name: alpine
+      image: alpine:latest
+      command: ["sleep", "infinity"]
+      volumeMounts:
+        - name: nfs-pv-storage
+          mountPath: /mnt/data
+  volumes:
+    - name: nfs-pv-storage
+      persistentVolumeClaim:
+        claimName: nfs-pv-claim

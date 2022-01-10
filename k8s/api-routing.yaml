@@ -1,0 +1,37 @@
+apiVersion: networking.istio.io/v1alpha3
+kind: VirtualService
+metadata:
+  name: canary-route
+spec:
+  hosts:
+  - "*"
+  gateways:
+  - main-gateway
+  http:
+  - match: 
+    - uri:
+        exact: /counter/get
+    route:
+    - destination:
+        host: main-go-service
+        subset: v1
+        port:
+          number: 5000
+  - match:
+    - uri:
+        exact: /counter/poll
+    route:
+    - destination:
+        host: main-go-service
+        subset: v2
+        port:
+          number: 5000
+  - match:
+    - uri:
+        exact: /counter/reset
+    route:
+    - destination:
+        host: main-python-service
+        subset: v3
+        port:
+          number: 5000

@@ -1,0 +1,10 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: reset-python-service
+spec:
+  ports:
+  - port: 5000
+    name: http
+  selector:
+    app: reset-python
