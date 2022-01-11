@@ -23,7 +23,6 @@ spec:
         imagePullPolicy: Never
         ports:
         - containerPort: 8000
-          name: "flask"
         volumeMounts:
         - mountPath: "/mnt/counters"
           name: nfs-pv-storage

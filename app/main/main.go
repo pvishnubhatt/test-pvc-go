@@ -16,13 +16,19 @@ type Counter struct {
 	Data    string `json:"data"`
 }
 
-var bufChannel chan uint64
+var counterChannel chan uint64
+
+func initMain() {
+	numChannels := 16
+	counterChannel = make(chan uint64, numChannels)
+}
 
 func main() {
+	initMain()
 	router := mux.NewRouter()
 	router.HandleFunc("/", handleMain)
 	router.HandleFunc("/counter", handleMain)
-	router.HandleFunc("/counter/get/{useChannel}", handleMainGet)
+	router.HandleFunc("/counter/get", handleMainGet)
 
 	log.Println("Main Server is running!")
 	fmt.Println(http.ListenAndServe(":8000", router))
@@ -37,29 +43,9 @@ func handleMain(rw http.ResponseWriter, r *http.Request) {
 }
 
 func handleMainGet(rw http.ResponseWriter, r *http.Request) {
-	vars := mux.Vars(r)
-
-	uParam := vars["useChannel"]
-	useChannel, err := strconv.ParseBool(uParam)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	nParam := vars["useChannel"]
-	numChannels, err := strconv.ParseInt(nParam, 10, 8)
-	if err != nil {
-		log.Fatalln(err)
-	}
-	var counter uint64
-
-	if useChannel {
-		counterChannel := make(chan uint64, numChannels)
-		defer close(counterChannel)
-
-		go getCounterFromChannel(counterChannel)
-		counter = <-counterChannel
-	} else {
-		counter = getCounter()
-	}
+	log.Println("main.handleMainGet")
+	go getCounterFromChannel(counterChannel)
+	counter := <-counterChannel
 	response := map[string]string{
 		"message": "Welcome to test-pvc - Get",
 		"counter": strconv.FormatUint(counter, 10),
@@ -68,13 +54,12 @@ func handleMainGet(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getCounterFromChannel(retChannel chan uint64) {
-	for range retChannel {
-		retChannel <- getCounter()
-	}
+	log.Println("main.getCounterFromChannel ", cap(retChannel), len(retChannel))
+	retChannel <- getCounter()
 }
 
 func getCounter() uint64 {
-	log.Println("main.handleMainGet")
+	log.Println("main.getCounter")
 	resp, err := http.Get("http://get-go-service:8000/counter/get/get")
 	if err != nil {
 		log.Fatalln(err)

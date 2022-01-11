@@ -1,5 +1,5 @@
 FROM alpine:3.14
 ENV APP_NAME main
-COPY bin/${APP_NAME} .
+COPY dist/${APP_NAME} .
 EXPOSE 8000
 CMD ./$APP_NAME
