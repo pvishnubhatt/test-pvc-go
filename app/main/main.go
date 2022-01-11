@@ -16,6 +16,8 @@ type Counter struct {
 	Data    string `json:"data"`
 }
 
+var bufChannel chan uint64
+
 func main() {
 	router := mux.NewRouter()
 	router.HandleFunc("/", handleMain)
@@ -37,14 +39,22 @@ func handleMain(rw http.ResponseWriter, r *http.Request) {
 func handleMainGet(rw http.ResponseWriter, r *http.Request) {
 	vars := mux.Vars(r)
 
-	qParam := vars["useChannel"]
-	useChannel, err := strconv.ParseBool(qParam)
+	uParam := vars["useChannel"]
+	useChannel, err := strconv.ParseBool(uParam)
+	if err != nil {
+		log.Fatalln(err)
+	}
+	nParam := vars["useChannel"]
+	numChannels, err := strconv.ParseInt(nParam, 10, 8)
 	if err != nil {
 		log.Fatalln(err)
 	}
 	var counter uint64
+
 	if useChannel {
-		counterChannel := make(chan uint64)
+		counterChannel := make(chan uint64, numChannels)
+		defer close(counterChannel)
+
 		go getCounterFromChannel(counterChannel)
 		counter = <-counterChannel
 	} else {
@@ -58,7 +68,9 @@ func handleMainGet(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getCounterFromChannel(retChannel chan uint64) {
-	retChannel <- getCounter()
+	for range retChannel {
+		retChannel <- getCounter()
+	}
 }
 
 func getCounter() uint64 {
