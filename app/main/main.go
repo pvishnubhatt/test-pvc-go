@@ -1,12 +1,16 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
 	"strconv"
+	"syscall"
+	"time"
 
 	"github.com/gorilla/mux"
 )
@@ -18,20 +22,53 @@ type Counter struct {
 
 var counterChannel chan uint64
 
+type HTTPServer struct {
+	http.Server
+	shutdownReq chan bool
+}
+
 func initMain() {
 	numChannels := 16
 	counterChannel = make(chan uint64, numChannels)
 }
 
+func closeMain() {
+	close(counterChannel)
+}
+
 func main() {
 	initMain()
+
 	router := mux.NewRouter()
+	server := &HTTPServer{
+		Server: http.Server{
+			Addr:    ":8000",
+			Handler: router,
+		},
+		shutdownReq: make(chan bool),
+	}
+
 	router.HandleFunc("/", handleMain)
 	router.HandleFunc("/counter", handleMain)
-	router.HandleFunc("/counter/get", handleMainGet)
-
+	router.HandleFunc("/counter/get", handleMain)
+	router.HandleFunc("/shutdown", server.ShutdownHandler)
 	log.Println("Main Server is running!")
-	fmt.Println(http.ListenAndServe(":8000", router))
+	done := make(chan bool)
+	go func() {
+		err := server.ListenAndServe()
+		if err != nil {
+			log.Printf("Listen and serve: %v", err)
+		}
+		done <- true
+	}()
+
+	//wait shutdown
+	server.WaitShutdown()
+
+	closeMain()
+
+	<-done
+	log.Printf("DONE!")
 }
 
 func handleMain(rw http.ResponseWriter, r *http.Request) {
@@ -54,12 +91,10 @@ func handleMainGet(rw http.ResponseWriter, r *http.Request) {
 }
 
 func getCounterFromChannel(retChannel chan uint64) {
-	log.Println("main.getCounterFromChannel ", cap(retChannel), len(retChannel))
 	retChannel <- getCounter()
 }
 
 func getCounter() uint64 {
-	log.Println("main.getCounter")
 	resp, err := http.Get("http://get-go-service:8000/counter/get/get")
 	if err != nil {
 		log.Fatalln(err)
@@ -76,4 +111,36 @@ func getCounter() uint64 {
 		log.Fatalln(err)
 	}
 	return ctr
+}
+
+func (s *HTTPServer) WaitShutdown() {
+	irqSig := make(chan os.Signal, 1)
+	signal.Notify(irqSig, syscall.SIGINT, syscall.SIGTERM)
+
+	//Wait interrupt or shutdown request through /shutdown
+	select {
+	case sig := <-irqSig:
+		log.Printf("Shutdown request (signal: %v)", sig)
+	case sig := <-s.shutdownReq:
+		log.Printf("Shutdown request (/shutdown %v)", sig)
+	}
+
+	log.Printf("Stopping HTTP server ...")
+
+	//Create shutdown context with 10 second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	//shutdown the server
+	err := s.Shutdown(ctx)
+	if err != nil {
+		log.Printf("Shutdown request error: %v", err)
+	}
+}
+
+func (s *HTTPServer) ShutdownHandler(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("Shutdown server"))
+	go func() {
+		s.shutdownReq <- true
+	}()
 }
