@@ -18,8 +18,7 @@ type Counter struct {
 
 var counterChannel chan uint64
 
-func initMain() {
-	numChannels := 16
+func initMain(numChannels int) {
 	counterChannel = make(chan uint64, numChannels)
 }
 
@@ -28,12 +27,13 @@ func closeMain() {
 }
 
 func main() {
-	initMain()
 
+	conf := common.Configuration{}
+	initMain(conf.GetIntEnv("NUM_CHANNELS", 16))
 	router := mux.NewRouter()
 	server := &common.HTTPServer{
 		Server: http.Server{
-			Addr:    ":8000",
+			Addr:    ":" + strconv.Itoa(conf.GetIntEnv("PORT", 8000)),
 			Handler: router,
 		},
 		ShutdownReq: make(chan bool),
@@ -41,7 +41,7 @@ func main() {
 
 	router.HandleFunc("/", handleMain)
 	router.HandleFunc("/counter", handleMain)
-	router.HandleFunc("/counter/get", handleMain)
+	router.HandleFunc("/counter/get", handleMainGet)
 	router.HandleFunc("/shutdown", server.ShutdownHandler)
 	log.Println("Main Server is running!")
 	done := make(chan bool)

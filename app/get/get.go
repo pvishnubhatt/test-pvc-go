@@ -4,16 +4,18 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"strconv"
 	"test-pvc-go/test-pvc-go/app/common"
 
 	"github.com/gorilla/mux"
 )
 
 func main() {
+	conf := common.Configuration{}
 	router := mux.NewRouter()
 	server := &common.HTTPServer{
 		Server: http.Server{
-			Addr:    ":8000",
+			Addr:    ":" + strconv.Itoa(conf.GetIntEnv("PORT", 8000)),
 			Handler: router,
 		},
 		ShutdownReq: make(chan bool),

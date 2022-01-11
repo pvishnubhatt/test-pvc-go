@@ -1,0 +1,11 @@
+kind: ConfigMap  
+apiVersion: v1  
+metadata:
+  name: test-pvc-configmap
+  namespace: default
+data:
+  # Configuration values can be set as key-value properties
+  NUM_CHANNELS : "16"
+  PORT : "8000"
+  
+
