@@ -27,3 +27,9 @@ spec:
         volumeMounts:
         - mountPath: "/mnt/counters"
           name: nfs-pv-storage
+        env:  # Environment variables passed to the container
+          - name: NUM_CHANNELS
+            valueFrom:
+              configMapKeyRef:
+                name: test-pvc-go-configmap
+                key: NUM_CHANNELS
